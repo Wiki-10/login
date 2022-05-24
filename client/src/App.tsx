@@ -3,7 +3,7 @@ import React from "react";
 function App() {
   return (
     <div>
-      <p>adaadawsd</p>
+      <p>ada</p>
     </div>
   );
 }
