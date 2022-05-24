@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, abort, session
 from flask_bcrypt import Bcrypt
+from flask_cors import CORS, cross_origin
 from config import ApplicationConfig
 from models import db, User
 from flask_session import Session
@@ -9,6 +10,7 @@ app.config.from_object(ApplicationConfig)
 
 
 bcrypt = Bcrypt(app)
+cors = CORS(app, supports_credentials = True)
 server_session = Session(app)
 
 db.init_app(app)
@@ -19,8 +21,21 @@ with app.app_context():
 
 
 
+@app.route("/@me")
+def get_current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(id=user_id).first()
 
+    if user is None:
+        return jsonify({"error": "Unauthorized"}), 401
 
+    return jsonify({
+        "id": user.id,
+        "email": user.email
+    })
 
 
 # Route for registering an user
@@ -38,6 +53,8 @@ def register_user():
     new_user = User(email = email, password = hashed_password)
     db.session.add(new_user)
     db.session.commit()
+
+    session["user_id"] = new_user.id
     return jsonify({
         "id": new_user.id,
         "email": new_user.email
@@ -65,21 +82,10 @@ def login_user():
         "email": user.email
     })
 
-@app.route("/@me")
-def get_current_user():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    user = User.query.filter_by(id=user_id).first()
-
-    if user is None:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    return jsonify({
-        "id": user.id,
-        "email": user.email
-    })
+@app.route("/logout", methods = ["POST"])
+def logout_user():
+    session.pop("user_id")
+    return "200"
 
     
 if __name__ == '__main__':
